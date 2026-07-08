@@ -1,0 +1,15 @@
+# Java / Maven
+target/
+*.class
+# Node
+node_modules/
+dist/
+# azd / Azure
+.azure/
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.log
+# Worktrees
+.worktrees/
