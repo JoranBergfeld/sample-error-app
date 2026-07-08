@@ -8,6 +8,6 @@
     "alertEmail": { "value": "${ALERT_EMAIL=}" },
     "sreAgentMode": { "value": "${SRE_AGENT_MODE=Review}" },
     "sreAgentModelProvider": { "value": "${SRE_AGENT_MODEL_PROVIDER=MicrosoftFoundry}" },
-    "sreAgentModelName": { "value": "${SRE_AGENT_MODEL_NAME=gpt-5}" }
+    "sreAgentModelName": { "value": "${SRE_AGENT_MODEL_NAME=gpt-5.4}" }
   }
 }

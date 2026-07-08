@@ -136,7 +136,7 @@ Single resource group, subscription-scoped `main.bicep` (azd `provider: bicep`).
 | `environmentName` | (azd) | Resource naming / `azd-env-name` tag |
 | `location` | `swedencentral` | Region (SRE-Agent-supported, EU) |
 | `sreAgentModelProvider` | `MicrosoftFoundry` | Agent model provider (Azure OpenAI); ARM schema value is `MicrosoftFoundry` |
-| `sreAgentModelName` | e.g. `gpt-5` | Agent model |
+| `sreAgentModelName` | e.g. `gpt-5.4` | Agent model |
 | `sreAgentMode` | `Review` | `actionConfiguration.mode` for Azure mitigations |
 | `alertEmail` | `''` (optional) | Action group email; empty = no email receiver |
 | `githubOwner` / `githubRepo` | `JoranBergfeld` / `sample-error-app` | Issue target |
