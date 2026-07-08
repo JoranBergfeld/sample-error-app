@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "staticWebAppLocation": { "value": "${STATIC_WEB_APP_LOCATION=westeurope}" },
+    "alertEmail": { "value": "${ALERT_EMAIL=}" },
+    "sreAgentMode": { "value": "${SRE_AGENT_MODE=Review}" },
+    "sreAgentModelProvider": { "value": "${SRE_AGENT_MODEL_PROVIDER=MicrosoftFoundry}" },
+    "sreAgentModelName": { "value": "${SRE_AGENT_MODEL_NAME=gpt-5}" }
+  }
+}
