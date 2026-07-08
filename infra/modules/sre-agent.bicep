@@ -30,17 +30,31 @@ param modelName string = 'gpt-5.4'
 var readerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
 var monitoringReaderRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')
 
+// The agent's sub-configurations (knowledgeGraph / action) reference an identity by
+// resource id, which a system-assigned identity cannot satisfy at create time
+// (its principal is unknown until after creation). A user-assigned identity is used
+// so the same identity can be referenced by the agent's properties and RBAC.
+resource agentIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-sre-${resourceToken}'
+  location: location
+  tags: tags
+}
+
 resource agent 'Microsoft.App/agents@2026-01-01' = {
   name: 'sre-${resourceToken}'
   location: location
   tags: tags
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${agentIdentity.id}': {}
+    }
   }
   properties: {
     actionConfiguration: {
       mode: agentMode
       accessLevel: 'Low'
+      identity: agentIdentity.id
     }
     defaultModel: {
       provider: modelProvider
@@ -48,6 +62,7 @@ resource agent 'Microsoft.App/agents@2026-01-01' = {
     }
     knowledgeGraphConfiguration: {
       managedResources: [ managedResourceId ]
+      identity: agentIdentity.id
     }
     logConfiguration: {
       applicationInsightsConfiguration: {
@@ -64,7 +79,7 @@ resource readerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   scope: resourceGroup()
   properties: {
     roleDefinitionId: readerRoleId
-    principalId: agent.identity.principalId
+    principalId: agentIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -74,10 +89,10 @@ resource monitoringReaderAssignment 'Microsoft.Authorization/roleAssignments@202
   scope: resourceGroup()
   properties: {
     roleDefinitionId: monitoringReaderRoleId
-    principalId: agent.identity.principalId
+    principalId: agentIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 output name string = agent.name
-output principalId string = agent.identity.principalId
+output principalId string = agentIdentity.properties.principalId
