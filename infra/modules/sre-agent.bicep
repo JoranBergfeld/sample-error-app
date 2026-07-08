@@ -24,8 +24,8 @@ param agentMode string = 'Review'
 @description('Model provider (ARM value). MicrosoftFoundry maps to Azure OpenAI.')
 param modelProvider string = 'MicrosoftFoundry'
 
-@description('Model name, e.g. gpt-5.')
-param modelName string = 'gpt-5'
+@description('Model name (must be a supported agent model in the target region, e.g. gpt-5.4).')
+param modelName string = 'gpt-5.4'
 
 var readerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
 var monitoringReaderRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '43d0d8ad-25c7-4714-9337-8ba259a9fe05')

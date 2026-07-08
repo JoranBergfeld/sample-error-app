@@ -23,7 +23,7 @@ param sreAgentMode string = 'Review'
 param sreAgentModelProvider string = 'MicrosoftFoundry'
 
 @description('SRE Agent model name.')
-param sreAgentModelName string = 'gpt-5'
+param sreAgentModelName string = 'gpt-5.4'
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
