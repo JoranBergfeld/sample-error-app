@@ -34,13 +34,19 @@ npm --prefix src/frontend run test
 
 ## Deploy with azd
 
-Prerequisites: `az login`, an SRE-Agent-supported region (default `swedencentral`), and a
-fine-grained GitHub PAT (`contents:read`, `issues:read/write`).
+Prerequisites: **azd ≥ 1.26.0** (older azd, e.g. 1.25.x, deploys Static Web Apps to the `default`
+environment, which the SWA content server now rejects with `BadRequest`), `az login`, an
+SRE-Agent-supported region, and a GitHub PAT (`contents:read`, `issues:read/write`).
+
+SRE-Agent-supported regions include `swedencentral`, `francecentral`, `uksouth`, `eastus2`,
+`australiaeast`, `canadacentral`, `koreacentral`, `southeastasia`, `southafricanorth` (all offer
+the default `gpt-5.4` model). If a region reports Container Apps / AKS capacity errors, pick
+another supported region.
 
 ```bash
 azd auth login
 azd env new sample-error-app
-azd env set AZURE_LOCATION swedencentral
+azd env set AZURE_LOCATION francecentral
 azd env set GITHUB_OWNER JoranBergfeld
 azd env set GITHUB_REPO sample-error-app
 azd env set GITHUB_PAT <your-fine-grained-pat>   # not stored in Bicep/Key Vault
@@ -59,16 +65,22 @@ deploys the frontend to Static Web Apps, and runs the SRE-Agent postprovision ho
 3. Within ~5 minutes the "Backend 5xx errors detected" alert fires.
 4. The SRE Agent investigates and opens an issue in `JoranBergfeld/sample-error-app`.
 
-## SRE Agent manual configuration (preview fallback)
+## SRE Agent GitHub wiring
 
-Some SRE Agent Builder settings are preview and may not be fully automatable by the hook. If the
-`azd up` output prints **MANUAL STEPS**, complete them once at https://sre.azure.com:
+The postprovision hook configures the agent's GitHub PAT via the control plane
+(`Microsoft.App/agents` → `properties.gitHubConfiguration.patTokenOverride`), so the agent can
+authenticate to GitHub. Choosing **which** repo to file issues in and the **incident → issue**
+behavior is done once in the agent workspace (preview, not yet IaC-automatable). If `azd up`
+prints **MANUAL STEPS**, complete them at https://sre.azure.com for the `sre-*` agent:
 
 1. **Code Access** → connect `JoranBergfeld/sample-error-app`.
-2. **Connectors → GitHub** → auth = PAT (`contents:read`, `issues:read/write`).
-3. **Incident platform** → **Azure Monitor** → Save.
-4. **Incident response plans → New** → filter on the 5xx alert; instruct the agent to investigate
-   and create a GitHub issue titled "Backend 500 detected"; allow automatic issue creation.
+2. **Incident platform** → **Azure Monitor** → Save.
+3. **Incident response plans → New** → trigger on the Sev2 `alert-backend-5xx-*` alert; instruct the
+   agent to investigate via Application Insights and create a GitHub issue titled
+   "Backend 500 detected"; allow automatic issue creation.
+
+> The PAT passed via `azd env set GITHUB_PAT` is stored on the agent resource (encrypted at rest),
+> not in Bicep or Key Vault. Prefer a fine-grained PAT limited to this repository.
 
 ## Clean up
 

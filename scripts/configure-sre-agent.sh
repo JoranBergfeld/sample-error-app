@@ -19,16 +19,16 @@ print_manual_steps() {
   cat <<EOF
 
 ============================================================
- MANUAL STEPS (SRE Agent Builder — https://sre.azure.com)
+ MANUAL STEPS (SRE Agent workspace — https://sre.azure.com)
 ============================================================
-Open your agent "${AGENT_NAME}" (resource group ${RG}) and:
+If GITHUB_PAT was set, the agent's GitHub PAT is already configured (above).
+To finish the "backend 5xx -> GitHub issue" automation, open the agent
+"${AGENT_NAME}" (resource group ${RG}) and:
 
- 1. Builder > Code Access: connect this repo (${GH_OWNER}/${GH_REPO}).
- 2. Builder > Connectors > Add connector > GitHub:
-      auth = PAT, token = <your fine-grained PAT: contents:read, issues:read/write>.
- 3. Builder > Incident platform: choose "Azure Monitor" and Save.
- 4. Builder > Incident response plans > New:
-      - Filter: all severities (or Sev2), title contains "5xx".
+ 1. Code Access: connect this repo (${GH_OWNER}/${GH_REPO}) so the agent can open issues in it.
+ 2. Incident platform: choose "Azure Monitor" and Save.
+ 3. Incident response plans > New:
+      - Trigger: backend 5xx incidents (the Sev2 alert "alert-backend-5xx-*").
       - Instruction: "Investigate the backend 5xx incident using Application Insights,
         then create a GitHub issue in ${GH_OWNER}/${GH_REPO} titled
         'Backend 500 detected' summarizing root cause and evidence."
@@ -52,22 +52,27 @@ fi
 
 AGENT_ID="/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.App/agents/${AGENT_NAME}"
 
-# --- GitHub connector ---
+# --- GitHub access for the agent (control-plane, verified) ---
+# The agent's gitHubConfiguration.patTokenOverride field lets it authenticate to GitHub with a
+# PAT. This is a real field on the Microsoft.App/agents 2026-01-01 API, verified against a live
+# agent. The repo target and the "open an issue on a 5xx incident" behaviour are defined in the
+# agent's response plan (data-plane workspace), which is still configured via the MANUAL STEPS below.
 if [ -z "$GH_PAT" ]; then
-  warn "GITHUB_PAT not set (run: azd env set GITHUB_PAT <fine-grained-pat>). Skipping GitHub connector automation."
+  warn "GITHUB_PAT not set (run: azd env set GITHUB_PAT <PAT with contents:read, issues:read/write>). Skipping GitHub PAT configuration."
+  GH_FAILED=1
 else
-  warn "GitHub connector: no automated data-plane API is available from here yet; see manual steps below."
-  # UNVERIFIED EXAMPLE — NOT EXECUTED. The SRE Agent Builder data-plane API (*.azuresre.ai) is
-  # preview and undocumented; the shape below is an illustration only and must be verified against
-  # a live agent before it is ever wired in. Until then the GitHub connector is configured via the
-  # printed MANUAL STEPS, not by this script.
-  #   az rest --method put \
-  #     --url "https://management.azure.com${AGENT_ID}/connectors/github?api-version=2026-01-01" \
-  #     --headers "Content-Type=application/json" \
-  #     --body "{\"properties\":{\"type\":\"GitHub\",\"auth\":{\"kind\":\"PAT\",\"token\":\"${GH_PAT}\"},\"repository\":\"${GH_OWNER}/${GH_REPO}\"}}" \
-  #     && log "GitHub connector configured." \
-  #     || { warn "GitHub connector API call failed; see manual steps."; GH_FAILED=1; }
-  GH_FAILED="${GH_FAILED:-unimplemented}"
+  log "Configuring the agent's GitHub PAT (gitHubConfiguration.patTokenOverride)..."
+  if az rest --method patch \
+       --url "https://management.azure.com${AGENT_ID}?api-version=2026-01-01" \
+       --headers "Content-Type=application/json" \
+       --body "{\"properties\":{\"gitHubConfiguration\":{\"patTokenOverride\":\"${GH_PAT}\"}}}" \
+       -o none 2>/dev/null; then
+    log "GitHub PAT configured on the agent."
+    GH_FAILED=0
+  else
+    warn "Failed to set the GitHub PAT on the agent; see manual steps."
+    GH_FAILED=1
+  fi
 fi
 
 # --- Azure Monitor incident platform + response plan ---
